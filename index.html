@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OESM — Osservatorio Economico della Repubblica di San Marino</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --blu-sm:        #002868;
+            --blu-sm-chiaro: #003d9e;
+            --blu-sm-tenui:  #e8edf7;
+            --oro:           #c8922a;
+            --oro-chiaro:    #f7eedc;
+            --grigio-testo:  #1f2937;
+            --grigio-medio:  #6b7280;
+            --grigio-bordo:  #d1d5db;
+            --grigio-sfondo: #f9fafb;
+            --bianco:        #ffffff;
+            --verde-ok:      #065f46;
+            --verde-ok-bg:   #ecfdf5;
+            --font-serif:    'Georgia', 'Palatino Linotype', serif;
+            --font-sans:     'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono:     'Consolas', 'Courier New', monospace;
+            --shadow-sm:     0 1px 3px rgba(0,0,0,.08);
+            --shadow-md:     0 4px 16px rgba(0,40,104,.08);
+            --radius:        4px;
+            --radius-md:     8px;
+            --transizione:   0.2s ease;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background: var(--grigio-sfondo); color: var(--grigio-testo); font-size: 15px; line-height: 1.6; }
+
+        .header-istituzionale { background: var(--blu-sm); color: var(--bianco); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+        .header-banda-top { background: var(--oro); height: 4px; }
+        .header-contenuto { max-width: 1280px; margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+        .header-brand { display: flex; align-items: center; gap: 1rem; text-decoration: none; color: inherit; }
+        .header-sigla { font-family: var(--font-serif); font-size: 1.6rem; font-weight: normal; letter-spacing: 0.04em; }
+        .header-separatore { width: 1px; height: 28px; background: rgba(255,255,255,.3); }
+        .header-nome { font-size: 0.75rem; color: rgba(255,255,255,.8); line-height: 1.3; max-width: 240px; }
+        .header-nav { display: flex; gap: 0.25rem; align-items: center; }
+        .nav-link { color: rgba(255,255,255,.85); text-decoration: none; padding: 0.4rem 0.8rem; border-radius: var(--radius); font-size: 0.875rem; transition: background var(--transizione); }
+        .nav-link:hover, .nav-link.attivo { background: rgba(255,255,255,.15); color: var(--bianco); }
+        .header-badge-opendata { font-size: 0.65rem; background: var(--verde-ok-bg); color: var(--verde-ok); padding: 2px 8px; border-radius: 12px; border: 1px solid #6ee7b7; font-weight: 600; letter-spacing: 0.05em; }
+
+        .hero { background: linear-gradient(135deg, var(--blu-sm) 0%, var(--blu-sm-chiaro) 100%); color: var(--bianco); padding: 4rem 2rem 3rem; }
+        .hero-contenuto { max-width: 1280px; margin: 0 auto; }
+        .hero h1 { font-family: var(--font-serif); font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: normal; line-height: 1.25; margin-bottom: 0.75rem; max-width: 700px; }
+        .hero-sottotitolo { font-size: 1rem; color: rgba(255,255,255,.75); max-width: 600px; margin-bottom: 2rem; }
+        .hero-meta { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .hero-meta-voce { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: rgba(255,255,255,.65); }
+        .hero-meta-voce strong { color: rgba(255,255,255,.9); }
+
+        .kpi-section { max-width: 1280px; margin: -1.5rem auto 0; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .kpi-card { background: var(--bianco); border: 1px solid var(--grigio-bordo); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 0.25rem; transition: transform var(--transizione), box-shadow var(--transizione); position: relative; overflow: hidden; }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--blu-sm); }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,40,104,.12); }
+        .kpi-label { font-size: 0.75rem; color: var(--grigio-medio); text-transform: uppercase; letter-spacing: 0.06em; }
+        .kpi-value { font-family: var(--font-serif); font-size: 2rem; color: var(--blu-sm); line-height: 1; }
+        .kpi-unit { font-size: 0.875rem; color: var(--grigio-medio); }
+        .kpi-fonte { font-size: 0.7rem; color: var(--grigio-bordo); margin-top: 0.5rem; border-top: 1px solid var(--grigio-bordo); padding-top: 0.5rem; display: flex; justify-content: space-between; }
+        .kpi-stato { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.7rem; padding: 1px 8px; border-radius: 10px; }
+        .kpi-stato.definitivo { background: var(--verde-ok-bg); color: var(--verde-ok); }
+        .kpi-stato.provvisorio { background: #fff3cd; color: #664d03; }
+
+        .contenuto-principale { max-width: 1280px; margin: 2rem auto; padding: 0 2rem; display: grid; grid-template-columns: 1fr 320px; gap: 2rem; }
+        @media (max-width: 900px) { .contenuto-principale { grid-template-columns: 1fr; } }
+
+        .pannello { background: var(--bianco); border: 1px solid var(--grigio-bordo); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+        .pannello-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; gap: 1rem; }
+        .pannello-titolo { font-family: var(--font-serif); font-size: 1.1rem; color: var(--blu-sm); font-weight: normal; }
+        .pannello-sottotitolo { font-size: 0.8rem; color: var(--grigio-medio); margin-top: 0.2rem; }
+        .pannello-azioni { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+        .btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.9rem; border-radius: var(--radius); font-size: 0.8rem; font-family: var(--font-sans); cursor: pointer; transition: all var(--transizione); text-decoration: none; border: 1px solid transparent; }
+        .btn-primario { background: var(--blu-sm); color: var(--bianco); border-color: var(--blu-sm); }
+        .btn-primario:hover { background: var(--blu-sm-chiaro); }
+        .btn-secondario { background: var(--bianco); color: var(--blu-sm); border-color: var(--grigio-bordo); }
+        .btn-secondario:hover { background: var(--blu-sm-tenui); border-color: var(--blu-sm); }
+
+        .filtri-temporali { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+        .filtro-btn { padding: 0.3rem 0.75rem; border-radius: 16px; font-size: 0.8rem; border: 1px solid var(--grigio-bordo); background: var(--bianco); color: var(--grigio-testo); cursor: pointer; transition: all var(--transizione); }
+        .filtro-btn.attivo { background: var(--blu-sm); color: var(--bianco); border-color: var(--blu-sm); }
+        .filtro-btn:hover:not(.attivo) { border-color: var(--blu-sm); color: var(--blu-sm); }
+
+        .grafico-contenitore { position: relative; height: 300px; }
+        .grafico-nota-fonte { font-size: 0.72rem; color: var(--grigio-medio); margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--grigio-bordo); display: flex; justify-content: space-between; align-items: center; }
+
+        .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+        .dataset-card { background: var(--bianco); border: 1px solid var(--grigio-bordo); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm); }
+        .dataset-card-titolo { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--grigio-medio); margin-bottom: 0.75rem; }
+        .dataset-item { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--grigio-bordo); font-size: 0.875rem; }
+        .dataset-item:last-child { border-bottom: none; }
+        .dataset-fonte-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; background: var(--blu-sm-tenui); color: var(--blu-sm); font-weight: 600; }
+
+        .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--grigio-bordo); margin-bottom: 1.5rem; }
+        .tab-btn { padding: 0.6rem 1.2rem; font-size: 0.875rem; background: none; border: none; cursor: pointer; color: var(--grigio-medio); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all var(--transizione); }
+        .tab-btn.attivo { color: var(--blu-sm); border-bottom-color: var(--blu-sm); font-weight: 600; }
+        .tab-panel { display: none; }
+        .tab-panel.attivo { display: block; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th { background: var(--blu-sm); color: var(--bianco); padding: 0.65rem 1rem; text-align: left; font-weight: normal; font-size: 0.8rem; }
+        td { padding: 0.55rem 1rem; border-bottom: 1px solid var(--grigio-bordo); font-variant-numeric: tabular-nums; }
+        tr:hover td { background: var(--blu-sm-tenui); }
+
+        .nota-trasparenza { background: var(--oro-chiaro); border: 1px solid var(--oro); border-radius: var(--radius-md); padding: 1rem 1.25rem; font-size: 0.82rem; margin-bottom: 1.5rem; display: flex; gap: 0.75rem; align-items: flex-start; }
+
+        footer { background: var(--blu-sm); color: rgba(255,255,255,.75); margin-top: 4rem; padding: 2.5rem 2rem; }
+        .footer-griglia { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem; }
+        .footer-brand { font-family: var(--font-serif); font-size: 1.3rem; color: var(--bianco); margin-bottom: 0.5rem; }
+        .footer-desc { font-size: 0.82rem; line-height: 1.6; }
+        .footer-col-titolo { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,.5); margin-bottom: 0.75rem; }
+        .footer-link { display: block; color: rgba(255,255,255,.75); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0; }
+        .footer-bottom { max-width: 1280px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.15); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.78rem; }
+        .licenza-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 16px; padding: 3px 12px; font-size: 0.78rem; }
+
+        .alert-nd { background: var(--grigio-sfondo); border: 1px solid var(--grigio-bordo); border-radius: var(--radius); padding: 1rem 1.25rem; font-size: 0.85rem; color: var(--grigio-medio); text-align: center; }
+    </style>
+</head>
+<body>
+
+<header class="header-istituzionale">
+    <div class="header-banda-top"></div>
+    <div class="header-contenuto">
+        <a href="#" class="header-brand">
+            <span class="header-sigla">OESM</span>
+            <span class="header-separatore"></span>
+            <span class="header-nome">Osservatorio Economico<br>Repubblica di San Marino</span>
+        </a>
+        <nav class="header-nav">
+            <a href="#dashboard" class="nav-link attivo">Dashboard</a>
+            <a href="#dati" class="nav-link">Dati</a>
+            <a href="#api" class="nav-link">API</a>
+            <a href="#report" class="nav-link">Report</a>
+            <span class="header-badge-opendata">OPEN DATA</span>
+        </nav>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="hero-contenuto">
+        <h1>Indicatori Economici<br>della Repubblica di San Marino</h1>
+        <p class="hero-sottotitolo">
+            Dati ufficiali aggregati da fonti istituzionali certificate.
+            Accesso libero. Trasparenza metodologica completa.
+        </p>
+        <div class="hero-meta">
+            <div class="hero-meta-voce">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Fonti: <strong>BCSM · USM · MEF · FMI</strong></span>
+            </div>
+            <div class="hero-meta-voce">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Aggiornamento: <strong>5 mar 2026</strong></span>
+            </div>
+            <div class="hero-meta-voce">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                <span>Dataset: <strong>4</strong></span>
+            </div>
+            <div class="hero-meta-voce">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span>Licenza: <strong>CC BY 4.0</strong></span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="kpi-section" id="dashboard">
+    <div class="kpi-card">
+        <span class="kpi-label">Tasso di riferimento BCE</span>
+        <span class="kpi-value">3.15</span>
+        <span class="kpi-unit">% annuo</span>
+        <div class="kpi-fonte">
+            <span>Fonte: BCSM</span>
+            <span class="kpi-stato definitivo">● definitivo</span>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Tasso di disoccupazione</span>
+        <span class="kpi-value">5.8</span>
+        <span class="kpi-unit">% forza lavoro</span>
+        <div class="kpi-fonte">
+            <span>Fonte: USM</span>
+            <span class="kpi-stato provvisorio">● provvisorio</span>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Variazione PIL annuale</span>
+        <span class="kpi-value">+2.1</span>
+        <span class="kpi-unit">% rispetto anno precedente</span>
+        <div class="kpi-fonte">
+            <span>Fonte: USM / FMI</span>
+            <span class="kpi-stato definitivo">● definitivo</span>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Osservazioni pubblicate</span>
+        <span class="kpi-value">1.847</span>
+        <span class="kpi-unit">datapoint nelle serie storiche</span>
+        <div class="kpi-fonte">
+            <span>Tutte le serie storiche</span>
+        </div>
+    </div>
+</section>
+
+<main class="contenuto-principale" style="margin-top:2rem;">
+    <div>
+        <div class="nota-trasparenza">
+            <span style="font-size:1.1rem;flex-shrink:0;">ℹ️</span>
+            <div>
+                <strong>Trasparenza metodologica:</strong>
+                Tutti i dati visualizzati provengono esclusivamente da fonti istituzionali ufficiali.
+                Per ogni dataset è disponibile la pagina di dettaglio con metodologia, fonte originale,
+                storico versioni e download completo della serie storica.
+                <a href="#" style="color:var(--blu-sm);">Consulta il registro operazioni →</a>
+            </div>
+        </div>
+
+        <div class="pannello">
+            <div class="pannello-header">
+                <div>
+                    <div class="pannello-titolo">Tassi di Interesse Ufficiali</div>
+                    <div class="pannello-sottotitolo">Fonte: BCSM — Banca Centrale della Repubblica di San Marino · Serie 2019–2026</div>
+                </div>
+                <div class="pannello-azioni">
+                    <button class="btn btn-secondario">↓ Scarica CSV</button>
+                    <button class="btn btn-secondario">API JSON</button>
+                </div>
+            </div>
+
+            <div class="filtri-temporali">
+                <button class="filtro-btn" onclick="setRange(1,this)">1a</button>
+                <button class="filtro-btn" onclick="setRange(2,this)">2a</button>
+                <button class="filtro-btn attivo" onclick="setRange(5,this)">5a</button>
+                <button class="filtro-btn" onclick="setRange(10,this)">10a</button>
+                <button class="filtro-btn" onclick="setRange(null,this)">Tutti</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn attivo" onclick="switchTab('grafico',this)">Grafico</button>
+                <button class="tab-btn" onclick="switchTab('tabella',this)">Tabella dati</button>
+                <button class="tab-btn" onclick="switchTab('metadati',this)">Metadati</button>
+            </div>
+
+            <div id="tab-grafico" class="tab-panel attivo">
+                <div class="grafico-contenitore">
+                    <canvas id="grafico-principale"></canvas>
+                </div>
+                <div class="grafico-nota-fonte">
+                    <span>Dati aggiornati al 28 feb 2026 · 86 osservazioni</span>
+                    <span>OESM — Osservatorio Economico di San Marino</span>
+                </div>
+            </div>
+
+            <div id="tab-tabella" class="tab-panel">
+                <table>
+                    <thead>
+                        <tr><th>Periodo</th><th>Valore (%)</th><th>Unità</th><th>Stato</th><th>Fonte</th></tr>
+                    </thead>
+                    <tbody id="tabella-body"></tbody>
+                </table>
+            </div>
+
+            <div id="tab-metadati" class="tab-panel">
+                <table>
+                    <tr><th style="width:220px">Identificatore</th><td><code>bcsm_interest_rates</code></td></tr>
+                    <tr><th>Titolo</th><td>Tassi di Interesse Ufficiali — BCSM</td></tr>
+                    <tr><th>Fonte</th><td>Banca Centrale della Repubblica di San Marino (BCSM)</td></tr>
+                    <tr><th>Frequenza</th><td>Mensile</td></tr>
+                    <tr><th>Unità di misura</th><td>PCT — Percentuale</td></tr>
+                    <tr><th>Copertura temporale</th><td>Dal 2019-01-01</td></tr>
+                    <tr><th>Versione corrente</th><td>v1.5.0</td></tr>
+                    <tr><th>Ultimo aggiornamento</th><td>05/03/2026</td></tr>
+                    <tr><th>Licenza</th><td><a href="https://creativecommons.org/licenses/by/4.0/" style="color:var(--blu-sm);">CC BY 4.0</a></td></tr>
+                    <tr><th>Download CSV</th><td><button class="btn btn-primario" style="font-size:0.8rem;">↓ Download</button></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="dataset-card">
+            <div class="dataset-card-titolo">Catalogo Dataset</div>
+            <div class="dataset-item">
+                <div>
+                    <div style="font-size:0.8rem;font-weight:600;">Tassi di Interesse Ufficiali</div>
+                    <div style="font-size:0.72rem;color:var(--grigio-medio);">Mensile · dal 2019</div>
+                </div>
+                <span class="dataset-fonte-badge">BCSM</span>
+            </div>
+            <div class="dataset-item">
+                <div>
+                    <div style="font-size:0.8rem;font-weight:600;">PIL — Prodotto Interno Lordo</div>
+                    <div style="font-size:0.72rem;color:var(--grigio-medio);">Annuale · dal 2010</div>
+                </div>
+                <span class="dataset-fonte-badge">USM</span>
+            </div>
+            <div class="dataset-item">
+                <div>
+                    <div style="font-size:0.8rem;font-weight:600;">Tasso di Disoccupazione</div>
+                    <div style="font-size:0.72rem;color:var(--grigio-medio);">Trimestrale · dal 2015</div>
+                </div>
+                <span class="dataset-fonte-badge">USM</span>
+            </div>
+            <div class="dataset-item">
+                <div>
+                    <div style="font-size:0.8rem;font-weight:600;">Indice Prezzi al Consumo</div>
+                    <div style="font-size:0.72rem;color:var(--grigio-medio);">Mensile · dal 2018</div>
+                </div>
+                <span class="dataset-fonte-badge">USM</span>
+            </div>
+            <div style="margin-top:0.75rem;">
+                <button class="btn btn-secondario" style="width:100%;justify-content:center;">Catalogo completo</button>
+            </div>
+        </div>
+
+        <div class="dataset-card" id="api">
+            <div class="dataset-card-titolo">API Pubblica</div>
+            <p style="font-size:0.82rem;color:var(--grigio-medio);margin-bottom:0.75rem;">
+                Tutti i dati sono accessibili via API RESTful documentata secondo lo standard OpenAPI 3.1.
+            </p>
+            <div style="background:var(--grigio-sfondo);border-radius:var(--radius);padding:0.5rem 0.75rem;font-family:var(--font-mono);font-size:0.78rem;color:var(--blu-sm);margin-bottom:0.75rem;">
+                GET /api/v1/datasets/{id}
+            </div>
+            <button class="btn btn-primario" style="width:100%;justify-content:center;">Documentazione OpenAPI</button>
+        </div>
+
+        <div class="dataset-card" id="report">
+            <div class="dataset-card-titolo">Bollettini Mensili</div>
+            <div class="dataset-item">
+                <div style="font-size:0.82rem;">OESM-2026-02</div>
+                <button class="btn btn-secondario" style="font-size:0.75rem;padding:2px 8px;">PDF</button>
+            </div>
+            <div class="dataset-item">
+                <div style="font-size:0.82rem;">OESM-2026-01</div>
+                <button class="btn btn-secondario" style="font-size:0.75rem;padding:2px 8px;">PDF</button>
+            </div>
+            <div class="dataset-item">
+                <div style="font-size:0.82rem;">OESM-2025-12</div>
+                <button class="btn btn-secondario" style="font-size:0.75rem;padding:2px 8px;">PDF</button>
+            </div>
+            <div style="margin-top:0.75rem;">
+                <button class="btn btn-secondario" style="width:100%;justify-content:center;">Archivio completo</button>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<footer>
+    <div class="footer-griglia">
+        <div>
+            <div class="footer-brand">OESM</div>
+            <p class="footer-desc">
+                Osservatorio Economico della Repubblica di San Marino.<br>
+                Piattaforma open data per indicatori economici ufficiali.<br>
+                Dati da fonti istituzionali certificate. Accesso libero.
+            </p>
+        </div>
+        <div>
+            <div class="footer-col-titolo">Dati e API</div>
+            <a href="#" class="footer-link">Catalogo dataset</a>
+            <a href="#" class="footer-link">Documentazione API</a>
+            <a href="#" class="footer-link">Registro operazioni</a>
+            <a href="#" class="footer-link">Bollettini mensili</a>
+        </div>
+        <div>
+            <div class="footer-col-titolo">Istituzionale</div>
+            <a href="#" class="footer-link">BCSM</a>
+            <a href="#" class="footer-link">Ufficio Statistica</a>
+            <a href="#" class="footer-link">Min. Finanze</a>
+            <a href="#" class="footer-link">FMI — San Marino</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>© 2026 Osservatorio Economico della Repubblica di San Marino</span>
+        <span class="licenza-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            Dati: CC BY 4.0 — Codice: MIT
+        </span>
+    </div>
+</footer>
+
+<script>
+"use strict";
+
+// Dati simulati — in produzione vengono dall'API /api/v1/datasets/bcsm_interest_rates
+const DATI_MOCK = (() => {
+    const result = [];
+    const valori = [
+        0.00,0.00,0.00,0.05,0.05,0.05,0.00,0.00,0.00,0.00,0.00,0.00, // 2019
+        0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00, // 2020
+        0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00, // 2021
+        0.00,0.00,0.50,0.50,1.00,1.25,2.00,2.50,3.00,3.25,3.00,2.50, // 2022
+        2.50,3.00,3.50,3.75,4.00,4.00,4.25,4.25,4.50,4.50,4.50,4.50, // 2023
+        4.50,4.50,4.25,4.00,4.00,3.75,3.65,3.50,3.40,3.25,3.15,3.15, // 2024
+        3.15,3.15                                                        // 2025 gen-feb
+    ];
+    const startYear = 2019;
+    valori.forEach((v, i) => {
+        const year = startYear + Math.floor(i / 12);
+        const month = (i % 12) + 1;
+        result.push({
+            periodo: `${year}-${String(month).padStart(2,'0')}-01`,
+            valore: v,
+            provvisorio: i >= valori.length - 2,
+        });
+    });
+    return result;
+})();
+
+let graficoInstance = null;
+let rangeAnni = 5;
+
+function getDataFiltrati() {
+    if (rangeAnni === null) return DATI_MOCK;
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - rangeAnni);
+    return DATI_MOCK.filter(p => new Date(p.periodo) >= cutoff);
+}
+
+function disegnaGrafico() {
+    const dati = getDataFiltrati();
+    const labels = dati.map(p => {
+        const d = new Date(p.periodo);
+        return d.toLocaleDateString('it-IT', {month:'short', year:'2-digit'});
+    });
+    const valori = dati.map(p => p.valore);
+
+    const ctx = document.getElementById('grafico-principale').getContext('2d');
+    if (graficoInstance) graficoInstance.destroy();
+
+    graficoInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Tasso (%)',
+                data: valori,
+                borderColor: '#002868',
+                backgroundColor: 'rgba(0,40,104,0.06)',
+                borderWidth: 2.5,
+                pointRadius: dati.length <= 30 ? 4 : 2,
+                pointHoverRadius: 7,
+                pointBackgroundColor: dati.map(p => p.provvisorio ? '#c8922a' : '#002868'),
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1.5,
+                fill: true,
+                tension: 0.3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 500 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#002868',
+                    titleColor: '#fff',
+                    bodyColor: 'rgba(255,255,255,.85)',
+                    padding: 10,
+                    cornerRadius: 4,
+                    titleFont: { family: 'Georgia, serif', size: 13 },
+                    callbacks: {
+                        title: ctx => {
+                            const d = new Date(dati[ctx[0].dataIndex].periodo);
+                            return d.toLocaleDateString('it-IT', {month:'long',year:'numeric'});
+                        },
+                        label: ctx => ` ${ctx.parsed.y.toFixed(2)}%`,
+                        afterLabel: ctx => dati[ctx.dataIndex].provvisorio ? ' ⚠ Dato provvisorio' : '',
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: {size:11}, maxTicksLimit: 14 } },
+                y: {
+                    grid: { color: 'rgba(0,0,0,.06)' },
+                    ticks: { font: {size:11}, callback: v => v.toFixed(1) + '%' },
+                    min: -0.2
+                }
+            }
+        }
+    });
+}
+
+function popolaTabella() {
+    const tbody = document.getElementById('tabella-body');
+    tbody.innerHTML = [...DATI_MOCK].reverse().map(p => {
+        const d = new Date(p.periodo);
+        const periodo = d.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
+        const stato = p.provvisorio
+            ? `<span class="kpi-stato provvisorio">P</span>`
+            : `<span class="kpi-stato definitivo">✓</span>`;
+        return `<tr>
+            <td>${periodo}</td>
+            <td>${p.valore.toFixed(2)}</td>
+            <td>%</td>
+            <td>${stato}</td>
+            <td><span class="dataset-fonte-badge">BCSM</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function setRange(anni, btn) {
+    rangeAnni = anni;
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('attivo'));
+    btn.classList.add('attivo');
+    disegnaGrafico();
+}
+
+function switchTab(nomeTab, btnCliccato) {
+    document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('attivo'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('attivo'));
+    document.getElementById(`tab-${nomeTab}`).classList.add('attivo');
+    btnCliccato.classList.add('attivo');
+    if (nomeTab === 'grafico' && graficoInstance) graficoInstance.resize();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    disegnaGrafico();
+    popolaTabella();
+});
+</script>
+</body>
+</html>
